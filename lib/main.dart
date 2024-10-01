@@ -1,133 +1,108 @@
+import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
+import 'package:flame/game.dart'; // Assuming you're using the Flame game engine
+
+class CheckerPiece extends PositionComponent {
+  final Color color; // Color of the checker piece
+
+  CheckerPiece(this.color);
+
+  @override
+  void render(Canvas canvas) {
+    final paint = Paint()..color = color;
+    canvas.drawCircle(Offset.zero, CheckersBoard.squareSize / 2 * 0.4,
+        paint); // Draw the piece
+  }
+}
+
+class CheckersBoard extends PositionComponent {
+  static const int rows = 8;
+  static const int cols = 8;
+  static const double squareSize = 50.0; // Size of each square
+  static const double borderWidth = 5.0; // Width of the border
+
+  @override
+  Future<void> onLoad() async {
+    await super.onLoad();
+    _addCheckerPieces(); // Add checker pieces on load
+  }
+
+  void _addCheckerPieces() {
+    // Add pieces for the first player (black)
+    for (int row = 0; row < 3; row++) {
+      for (int col = 0; col < cols; col++) {
+        if ((row + col) % 2 == 1) {
+          final piece = CheckerPiece(Colors.yellow)
+            ..position = Vector2(col * squareSize + squareSize / 2,
+                row * squareSize + squareSize / 2);
+          add(piece);
+        }
+      }
+    }
+
+    // Add pieces for the second player (white)
+    for (int row = 5; row < 8; row++) {
+      for (int col = 0; col < cols; col++) {
+        if ((row + col) % 2 == 1) {
+          final piece = CheckerPiece(Colors.white)
+            ..position = Vector2(col * squareSize + squareSize / 2,
+                row * squareSize + squareSize / 2);
+          add(piece);
+        }
+      }
+    }
+  }
+
+  @override
+  void render(Canvas canvas) {
+    // Draw the squares
+    for (int row = 0; row < rows; row++) {
+      for (int col = 0; col < cols; col++) {
+        final rect = Rect.fromLTWH(
+            col * squareSize, row * squareSize, squareSize, squareSize);
+        final paint = Paint()
+          ..color = (row % 2 == col % 2) ? Colors.white : Colors.black;
+        canvas.drawRect(rect, paint);
+      }
+    }
+
+    // Draw the border
+    final borderRect =
+        Rect.fromLTWH(0, 0, cols * squareSize, rows * squareSize);
+    final borderPaint = Paint()..color = Colors.black; // Set border color
+    canvas.drawRect(
+        borderRect,
+        borderPaint
+          ..strokeWidth = borderWidth
+          ..style = PaintingStyle.stroke);
+  }
+
+  @override
+  NotifyingVector2 get position =>
+      super.position; // Override to center the board
+}
+
+class CheckersGame extends FlameGame {
+  late SpriteComponent background; // Declare background component
+
+  @override
+  Future<void> onLoad() async {
+    await super.onLoad();
+
+    // Load the background image
+    background = SpriteComponent()
+      ..sprite = await loadSprite('bg.png') // Load your image
+      ..size = size; // Set the size to match the game size
+    add(background); // Add the background to the game
+
+    final board = CheckersBoard()
+      ..position = Vector2(
+          (size.x - CheckersBoard.cols * CheckersBoard.squareSize) / 2,
+          (size.y - CheckersBoard.rows * CheckersBoard.squareSize) / 2);
+    add(board);
+  }
+}
 
 void main() {
-  runApp(const CheckersGame());
-}
-
-class CheckersGame extends StatelessWidget {
-  const CheckersGame({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Checkers Game',
-      home: const GameBoard(),
-    );
-  }
-}
-
-class GameBoard extends StatefulWidget {
-  const GameBoard({super.key});
-
-  @override
-  _GameBoardState createState() => _GameBoardState();
-}
-
-class _GameBoardState extends State<GameBoard> {
-  List<List<int>> board = List.generate(8, (index) => List.filled(8, 0));
-  int? selectedRow;
-  int? selectedCol;
-
-  @override
-  void initState() {
-    super.initState();
-    _setupBoard();
-  }
-
-  void _setupBoard() {
-    for (int i = 0; i < 3; i++) {
-      for (int j = (i % 2); j < 8; j += 2) {
-        board[i][j] = 1; // Player 1 pieces
-      }
-    }
-    for (int i = 5; i < 8; i++) {
-      for (int j = (i % 2); j < 8; j += 2) {
-        board[i][j] = 2; // Player 2 pieces
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Checkers Game')),
-      body: Center(
-        // Center the container
-        child: Container(
-          width: 410, // Total width of the board (8 tiles * 50 pixels)
-          height: 410, // Total height of the board (8 tiles * 50 pixels)
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.black, width: 5), // Add border
-          ),
-          child: Column(
-            children: List.generate(8, (row) {
-              return Row(
-                children: List.generate(8, (col) {
-                  return GestureDetector(
-                    onTap: () => _onTileTap(row, col),
-                    child: Container(
-                      width: 50,
-                      height: 50,
-                      color: (row + col) % 2 == 0 ? Colors.white : Colors.black,
-                      child: Center(
-                        child: _buildPiece(row, col),
-                      ),
-                    ),
-                  );
-                }),
-              );
-            }),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPiece(int row, int col) {
-    if (board[row][col] == 1) {
-      return const CircleAvatar(backgroundColor: Colors.red);
-    } else if (board[row][col] == 2) {
-      return const CircleAvatar(backgroundColor: Colors.blue);
-    }
-    return const SizedBox.shrink();
-  }
-
-  void _onTileTap(int row, int col) {
-    if (selectedRow == null && selectedCol == null) {
-      // Select a piece
-      if (board[row][col] != 0) {
-        selectedRow = row;
-        selectedCol = col;
-        setState(() {});
-      }
-    } else {
-      // Move the selected piece
-      if (_isValidMove(row, col)) {
-        board[row][col] = board[selectedRow!][selectedCol!];
-        board[selectedRow!][selectedCol!] = 0; // Clear the old position
-        selectedRow = null; // Deselect
-        selectedCol = null; // Deselect
-        setState(() {});
-      } else {
-        // Invalid move, deselect
-        selectedRow = null;
-        selectedCol = null;
-        setState(() {});
-      }
-    }
-  }
-
-  bool _isValidMove(int row, int col) {
-    // Check if the move is valid (simple diagonal move)
-    if (board[row][col] == 0) {
-      int direction = board[selectedRow!][selectedCol!] == 1
-          ? 1
-          : -1; // Player 1 moves down, Player 2 moves up
-      if ((row - selectedRow!) == direction &&
-          (col - selectedCol!).abs() == 1) {
-        return true; // Regular move
-      }
-    }
-    return false; // Invalid move
-  }
+  runApp(GameWidget(game: CheckersGame()));
 }

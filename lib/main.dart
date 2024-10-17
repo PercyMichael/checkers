@@ -46,7 +46,7 @@ class CheckerPiece extends CircleComponent with TapCallbacks {
 class CheckersBoard extends PositionComponent {
   static const int rows = 8;
   static const int cols = 8;
-  static const double squareSize = 50.0; // Size of each square
+  static const double squareSize = 40.0; // Size of each square
   static const double borderWidth = 5.0; // Width of the border
 
   @override

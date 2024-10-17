@@ -1,5 +1,5 @@
 import 'package:flame/components.dart';
-import 'package:flame/effects.dart';
+
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
 import 'package:flame/game.dart'; // Assuming you're using the Flame game engine
@@ -11,7 +11,7 @@ class CheckerPiece extends CircleComponent with TapCallbacks {
 
   CheckerPiece(this.color, this.id, Vector2 position)
       : super(
-          radius: 20, // Set the radius (adjust as needed)
+          radius: 22, // Increased radius for a slightly larger piece
           position: position,
           anchor: Anchor.center, // Center the circle
         ) {
@@ -21,25 +21,33 @@ class CheckerPiece extends CircleComponent with TapCallbacks {
 
   @override
   void onTapUp(TapUpEvent event) {
+    // Check if another piece is selected before selecting this one
+    if (CheckersBoard.selectedPiece != null &&
+        CheckersBoard.selectedPiece != this) {
+      CheckersBoard.selectedPiece!.isSelected = false;
+      CheckersBoard.selectedPiece!.paint.color =
+          CheckersBoard.selectedPiece!.color;
+    }
+
     // Toggle selection state
     isSelected = !isSelected;
 
     if (isSelected) {
-      // Create and add the ColorEffect when selected
-      final effect = ColorEffect(
-        const Color(0xFF00FF00), // Green color
-        EffectController(duration: 1.5),
-        opacityFrom: 0.2,
-        opacityTo: 0.8,
-      );
-      add(effect);
+      print('Selected $id');
+      // Highlight the piece when selected
+      paint.color = const Color(0xFF00FF00); // Green color for highlighting
+      CheckersBoard.selectedPiece =
+          this; // Update the selected piece in the board
     } else {
-      // Remove all effects when deselected
-      // removeAll<ColorEffect>();
+      print('Dropped $id');
+      // Reset the color to the original color when dropped
+      paint.color = color;
+      CheckersBoard.selectedPiece =
+          null; // Clear the selected piece in the board
     }
 
-    print(
-        'Checker piece $id tapped at position: $position'); // Print message with identifier and position on tap
+    // print(
+    //     'Checker piece $id tapped at position: $position'); // Print message with identifier and position on tap
   }
 }
 
@@ -48,6 +56,7 @@ class CheckersBoard extends PositionComponent {
   static const int cols = 8;
   static const double squareSize = 40.0; // Size of each square
   static const double borderWidth = 5.0; // Width of the border
+  static CheckerPiece? selectedPiece; // Track the currently selected piece
 
   @override
   Future<void> onLoad() async {
@@ -65,8 +74,9 @@ class CheckersBoard extends PositionComponent {
               row * cols + col,
               Vector2(col * squareSize + squareSize / 2,
                   row * squareSize + squareSize / 2)) // Pass initial position
-            ..size = Vector2(CheckersBoard.squareSize * 0.4,
-                CheckersBoard.squareSize * 0.4); // Ensure size is set
+            ..size = Vector2(
+                CheckersBoard.squareSize * 0.6, // Slightly increased size
+                CheckersBoard.squareSize * 0.6); // Ensure size is set
           add(piece);
         }
       }
@@ -81,8 +91,9 @@ class CheckersBoard extends PositionComponent {
               row * cols + col,
               Vector2(col * squareSize + squareSize / 2,
                   row * squareSize + squareSize / 2)) // Pass initial position
-            ..size = Vector2(CheckersBoard.squareSize * 0.4,
-                CheckersBoard.squareSize * 0.4); // Ensure size is set
+            ..size = Vector2(
+                CheckersBoard.squareSize * 0.6, // Slightly increased size
+                CheckersBoard.squareSize * 0.6); // Ensure size is set
           add(piece);
         }
       }
@@ -117,34 +128,7 @@ class CheckersBoard extends PositionComponent {
   NotifyingVector2 get position =>
       super.position; // Override to center the board
 
-  CheckerPiece? selectedPiece; // Track the currently selected piece
-
   @override
-  void onTapUp(TapUpEvent event) {
-    // Check which piece was tapped
-    final tappedPiece = getPieceAt(event.localPosition);
-    if (tappedPiece != null) {
-      if (selectedPiece != null) {
-        // Deselect the previously selected piece
-        selectedPiece!.isSelected = false;
-        // Remove the effect from the previously selected piece
-        // selectedPiece!.removeAll(); // Remove all effects directly
-      }
-      // Select the new piece
-      selectedPiece = tappedPiece;
-      selectedPiece!.isSelected = true;
-
-      // Add effect to the newly selected piece
-      final effect = ColorEffect(
-        const Color(0xFF00FF00), // Green color
-        EffectController(duration: 1.5),
-        opacityFrom: 0.2,
-        opacityTo: 0.8,
-      );
-      selectedPiece!.add(effect);
-    }
-  }
-
   CheckerPiece? getPieceAt(Vector2 position) {
     // Logic to determine which piece is at the given position
     for (var child in children) {
